@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Order Coffee</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  padding: 20px;
+}
+.box {
+  background: #fff;
+  padding: 20px;
+  max-width: 420px;
+  margin: auto;
+  border-radius: 10px;
+}
+input, select, textarea, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+}
+button {
+  background: #6f4e37;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+}
+ul {
+  list-style: none;
+  padding: 0;
+}
+li {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.hapus {
+  background: #c0392b;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+.total {
+  font-weight: bold;
+  margin-top: 10px;
+  font-size: 18px;
+}
+.popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.popup-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 300px;
+  text-align: center;
+}
+.popup img {
+  width: 100%;
+  margin: 10px 0;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+<h2>☕ FivePointZero Coffee</h2>
+
+<input id="nama" placeholder="Nama">
+<input id="hp" placeholder="No WhatsApp">
+
+<select id="menu">
+  <option value="Spanish Latte" data-harga="11000">Spanish Latte - 11.000</option>
+  <option value="Aren Latte" data-harga="13000">Aren Latte - 13.000</option>
+  <option value="Vanilla Latte" data-harga="15000">Vanilla Latte - 15.000</option>
+  <option value="Caramel Latte" data-harga="15000">Caramel Latte - 15.000</option>
+  <option value="Matcha" data-harga="15000">Matcha - 15.000</option>
+  <option value="Americano" data-harga="11000">Americano - 11.000</option>
+</select>
+
+<input id="qty" type="number" value="1" min="1">
+<textarea id="catatan" placeholder="Catatan (opsional)"></textarea>
+
+<button onclick="tambahKeranjang()">➕ Tambah</button>
+
+<h3>🛒 Keranjang</h3>
+<ul id="keranjang"></ul>
+
+<div class="total">Total: Rp <span id="totalHarga">0</span></div>
+
+<button onclick="checkoutTunai()">💵 Bayar Tunai</button>
+<button onclick="checkoutQRIS()">📱 Bayar QRIS</button>
+</div>
+
+<!-- POPUP QRIS -->
+<div class="popup" id="popupQRIS">
+  <div class="popup-content">
+    <h3>Scan QRIS</h3>
+    <img src="qris.jpg">
+    <p>Bayar sesuai total di atas</p>
+    <button onclick="kirimOrder('SUDAH BAYAR')">Saya sudah bayar</button>
+    <button onclick="tutupQRIS()">Batal</button>
+  </div>
+</div>
+
+<script>
+let cart = [];
+const API_URL = "https://script.google.com/macros/s/AKfycbx_KHaJNiWZQeBxk1JeKBTelhJSCtBZqHypwBQJJZHOXDooXO-AGeZr-QqSd4eOo7RlnQ/exec";
+const ADMIN_WA = "085136276207"; // GANTI NO ADMIN
+
+function tambahKeranjang() {
+  let menu = document.getElementById("menu");
+  cart.push({
+    nama: menu.value,
+    harga: parseInt(menu.selectedOptions[0].dataset.harga),
+    qty: parseInt(document.getElementById("qty").value)
+  });
+  render();
+}
+
+function hapusItem(i) {
+  cart.splice(i,1);
+  render();
+}
+
+function render() {
+  let ul = document.getElementById("keranjang");
+  let total = 0;
+  ul.innerHTML = "";
+
+  cart.forEach((item,i) => {
+    total += item.harga * item.qty;
+    ul.innerHTML += `
+      <li>
+        ${item.nama} x${item.qty}
+        <button class="hapus" onclick="hapusItem(${i})">❌</button>
+      </li>`;
+  });
+
+  document.getElementById("totalHarga").innerText = total;
+}
+
+function checkoutTunai() {
+  kirimOrder("BELUM BAYAR");
+}
+
+function checkoutQRIS() {
+  if (cart.length === 0) return alert("Keranjang kosong");
+  document.getElementById("popupQRIS").style.display = "flex";
+}
+
+function tutupQRIS() {
+  document.getElementById("popupQRIS").style.display = "none";
+}
+
+function kirimOrder(status) {
+  let nama = document.getElementById("nama").value;
+  let hp = document.getElementById("hp").value;
+  let catatan = document.getElementById("catatan").value;
+
+  if (!nama || !hp) {
+    alert("Nama & WhatsApp wajib diisi");
+    return;
+  }
+
+  let detail = "";
+  let total = 0;
+  let qtyTotal = 0;
+
+  cart.forEach(i => {
+    detail += `${i.nama} x${i.qty} = ${i.harga*i.qty}\n`;
+    total += i.harga * i.qty;
+    qtyTotal += i.qty;
+  });
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      nama: nama,
+      hp: hp,
+      qty: qtyTotal,
+      harga: total,
+      total: total,
+      catatan: catatan,
+      status: status,
+      detail_order: detail
+    })
+  }).then(() => {
+    let wa =
+`*ORDER COFFEE*
+Nama: ${nama}
+HP: ${hp}
+
+${detail}
+Total: Rp ${total}
+Status: ${status}`;
+
+    reset();
+    window.location.href =
+      `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(wa)}`;
+  });
+}
+
+function reset() {
+  cart = [];
+  render();
+  document.getElementById("nama").value = "";
+  document.getElementById("hp").value = "";
+  document.getElementById("catatan").value = "";
+  document.getElementById("qty").value = 1;
+  tutupQRIS();
+}
+</script>
+
+</body>
+</html>
