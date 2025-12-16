@@ -151,8 +151,16 @@ function render() {
 }
 
 function checkoutTunai() {
+  if (cart.length === 0) {
+    alert("Keranjang masih kosong");
+    return;
+  }
+
+  alert("Silakan lakukan pembayaran ke kasir");
+
   kirimOrder("BELUM BAYAR");
 }
+
 
 function checkoutQRIS() {
   if (cart.length === 0) return alert("Keranjang kosong");
@@ -224,4 +232,5 @@ function reset() {
 
 </body>
 </html>
+
 
