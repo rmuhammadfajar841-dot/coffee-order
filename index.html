@@ -129,20 +129,23 @@ li {
 <script>
 let cart = [];
 const API_URL = "https://script.google.com/macros/s/AKfycbx_KHaJNiWZQeBxk1JeKBTelhJSCtBZqHypwBQJJZHOXDooXO-AGeZr-QqSd4eOo7RlnQ/exec";
-const ADMIN_WA = "6285136276207"; // GANTI NO ADMIN
+const ADMIN_WA = "6285136276207";
 
 function tambahKeranjang() {
   let menu = document.getElementById("menu");
+  let qty = parseInt(document.getElementById("qty").value);
+
   cart.push({
     nama: menu.value,
     harga: parseInt(menu.selectedOptions[0].dataset.harga),
-    qty: parseInt(document.getElementById("qty").value)
+    qty: qty
   });
+
   render();
 }
 
 function hapusItem(i) {
-  cart.splice(i,1);
+  cart.splice(i, 1);
   render();
 }
 
@@ -151,13 +154,14 @@ function render() {
   let total = 0;
   ul.innerHTML = "";
 
-  cart.forEach((item,i) => {
+  cart.forEach((item, i) => {
     total += item.harga * item.qty;
     ul.innerHTML += `
       <li>
         ${item.nama} x${item.qty}
         <button class="hapus" onclick="hapusItem(${i})">❌</button>
-      </li>`;
+      </li>
+    `;
   });
 
   document.getElementById("totalHarga").innerText = total;
@@ -169,14 +173,15 @@ function checkoutTunai() {
     return;
   }
 
-  alert("Silakan lakukan pembayaran ke kasir");
-
+  alert("Silakan melakukan pembayaran ke kasir");
   kirimOrder("BELUM BAYAR");
 }
 
-
 function checkoutQRIS() {
-  if (cart.length === 0) return alert("Keranjang kosong");
+  if (cart.length === 0) {
+    alert("Keranjang masih kosong");
+    return;
+  }
   document.getElementById("popupQRIS").style.display = "flex";
 }
 
@@ -185,12 +190,12 @@ function tutupQRIS() {
 }
 
 function kirimOrder(status) {
-  let nama = document.getElementById("nama").value;
-  let hp = document.getElementById("hp").value;
-  let catatan = document.getElementById("catatan").value;
+  let nama = document.getElementById("nama").value.trim();
+  let hp = document.getElementById("hp").value.trim();
+  let catatan = document.getElementById("catatan").value.trim();
 
   if (!nama || !hp) {
-    alert("Nama & WhatsApp wajib diisi");
+    alert("Nama dan WhatsApp wajib diisi");
     return;
   }
 
@@ -198,10 +203,10 @@ function kirimOrder(status) {
   let total = 0;
   let qtyTotal = 0;
 
-  cart.forEach(i => {
-    detail += `${i.nama} x${i.qty} = ${i.harga*i.qty}\n`;
-    total += i.harga * i.qty;
-    qtyTotal += i.qty;
+  cart.forEach(item => {
+    detail += `${item.nama} x${item.qty} = ${item.harga * item.qty}\n`;
+    total += item.harga * item.qty;
+    qtyTotal += item.qty;
   });
 
   fetch(API_URL, {
@@ -216,8 +221,9 @@ function kirimOrder(status) {
       status: status,
       detail_order: detail
     })
-  }).then(() => {
-    let wa =
+  })
+  .then(() => {
+    let pesanWA =
 `*ORDER COFFEE*
 Nama: ${nama}
 HP: ${hp}
@@ -226,13 +232,17 @@ ${detail}
 Total: Rp ${total}
 Status: ${status}`;
 
-    reset();
+    resetForm();
+
     window.location.href =
-      `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(wa)}`;
+      `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(pesanWA)}`;
+  })
+  .catch(() => {
+    alert("Gagal mengirim order");
   });
 }
 
-function reset() {
+function resetForm() {
   cart = [];
   render();
   document.getElementById("nama").value = "";
@@ -243,8 +253,10 @@ function reset() {
 }
 </script>
 
+
 </body>
 </html>
+
 
 
 
